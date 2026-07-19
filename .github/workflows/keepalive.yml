@@ -1,0 +1,24 @@
+name: Keep Supabase awake
+
+# Пингует базу раз в ~3 дня, чтобы бесплатный проект Supabase не уснул
+# после недели без активности. Использует ПУБЛИЧНЫЙ anon-ключ (он и так
+# лежит в собранном сайте), поэтому секреты не нужны.
+
+on:
+  schedule:
+    - cron: '23 7 */3 * *'   # каждые 3 дня, 07:23 UTC
+  workflow_dispatch:          # можно запустить вручную
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase REST
+        run: |
+          URL="https://cmadircekbtsikzzzvdj.supabase.co"
+          ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtYWRpcmNla2J0c2lrenp6dmRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ0NTQwMDgsImV4cCI6MjEwMDAzMDAwOH0.r5NwyBb-aqj8LiwWwR_4GTdOd6rCUFpJ9EjRjSfnOD4"
+          code=$(curl -s -o /dev/null -w "%{http_code}" \
+            "$URL/rest/v1/questions?select=id&limit=1" \
+            -H "apikey: $ANON")
+          echo "Supabase ответил: HTTP $code"
+          test "$code" = "200"
