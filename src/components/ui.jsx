@@ -1,7 +1,7 @@
-// UI-библиотека «Слива» v2 — тёмные панели, кольца, глубина.
-import { useEffect, useState } from 'react'
+// UI-библиотека «Игра» — Duolingo-вайб: 3D-кнопки, чанки, геймификация.
+import { useEffect, useRef, useState } from 'react'
 
-/* Плавный счётчик чисел — фирменный приём (как цена в брифе) */
+/* Плавный счётчик чисел */
 export function CountUp({ value, suffix = '' }) {
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
   const [n, setN] = useState(reduce ? value : 0)
@@ -22,8 +22,8 @@ export function CountUp({ value, suffix = '' }) {
   return <>{n}{suffix}</>
 }
 
-/* Кольцо прогресса: анимированный обвод + контент в центре */
-export function Ring({ value, size = 150, stroke = 11, tone = 'light', children }) {
+/* Кольцо прогресса */
+export function Ring({ value, size = 150, stroke = 12, tone = 'light', children }) {
   const r = (size - stroke) / 2
   const c = 2 * Math.PI * r
   const clamped = Math.min(100, Math.max(0, value))
@@ -33,7 +33,7 @@ export function Ring({ value, size = 150, stroke = 11, tone = 'light', children 
       requestAnimationFrame(() => setOff(c - (c * clamped) / 100)))
     return () => cancelAnimationFrame(raf)
   }, [c, clamped])
-  const track = tone === 'dark' ? 'rgba(255,255,255,0.14)' : 'var(--color-line)'
+  const track = tone === 'dark' ? 'rgba(255,255,255,0.18)' : 'var(--color-line)'
   const bar = tone === 'dark' ? 'var(--color-ok-bright)' : 'var(--color-plum)'
   return (
     <div className="relative inline-grid place-items-center" style={{ width: size, height: size }}>
@@ -51,37 +51,64 @@ export function Ring({ value, size = 150, stroke = 11, tone = 'light', children 
   )
 }
 
-/* Декоративные дуги — след циркуля на тёмных панелях */
-export function Arcs({ className = '' }) {
+/* Летающие мат-фигуры — декор */
+export function MathShapes({ className = '' }) {
+  const items = [
+    { s: '+', c: 'var(--color-amber)', x: '6%', y: '18%', d: 0, size: 30 },
+    { s: '×', c: 'var(--color-ok-bright)', x: '82%', y: '12%', d: 0.8, size: 26 },
+    { s: '÷', c: 'var(--color-sky)', x: '70%', y: '62%', d: 1.6, size: 24 },
+    { s: '−', c: 'var(--color-grape)', x: '16%', y: '68%', d: 1.1, size: 34 },
+    { s: '=', c: 'var(--color-sky)', x: '40%', y: '8%', d: 0.4, size: 22 },
+  ]
   return (
-    <svg viewBox="0 0 200 200" fill="none" aria-hidden="true" className={className}>
-      <circle cx="100" cy="100" r="56" stroke="currentColor" strokeWidth="1.5" opacity="0.28" />
-      <circle cx="100" cy="100" r="84" stroke="currentColor" strokeWidth="1.5" opacity="0.16" />
-      <path d="M100 16a84 84 0 0 1 84 84" stroke="currentColor" strokeWidth="3" strokeLinecap="round" opacity="0.55" />
-      <circle cx="100" cy="16" r="4.5" fill="currentColor" opacity="0.8" />
-      <circle cx="156" cy="100" r="3" fill="currentColor" opacity="0.5" />
-    </svg>
+    <div className={`pointer-events-none absolute inset-0 overflow-hidden ${className}`} aria-hidden="true">
+      {items.map((it, i) => (
+        <span key={i} className="absolute animate-float font-display font-bold"
+          style={{ left: it.x, top: it.y, color: it.c, fontSize: it.size, animationDelay: `${it.d}s`, opacity: 0.9 }}>
+          {it.s}
+        </span>
+      ))}
+    </div>
   )
 }
 
-export function Button({ variant = 'primary', className = '', ...props }) {
+const SHADOW = {
+  primary: 'var(--color-plum-dark)',
+  success: 'var(--color-ok-dark)',
+  danger: 'var(--color-bad-dark)',
+  amber: 'var(--color-amber-dark)',
+  light: 'var(--color-line)',
+  outline: 'var(--color-line)',
+}
+
+export function Button({ variant = 'primary', className = '', style, ...props }) {
   const base =
-    'inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3.5 font-semibold transition ' +
-    'active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none'
+    'btn3d inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3.5 font-display text-[15px] font-bold tracking-wide ' +
+    'disabled:opacity-50 disabled:pointer-events-none select-none'
   const variants = {
-    primary: 'bg-plum text-white shadow-btn hover:bg-plum-dark',
-    light: 'bg-white text-plum-dark shadow-card hover:shadow-float',
-    outline: 'border-2 border-line bg-surface text-ink hover:border-plum',
-    outlineDark: 'border-2 border-white/25 text-white hover:bg-white/10',
-    ghost: 'text-plum hover:bg-plum-tint',
+    primary: 'bg-plum text-white',
+    success: 'bg-ok-bright text-white',
+    danger: 'bg-bad text-white',
+    amber: 'bg-amber text-white',
+    light: 'bg-white text-plum border-2 border-line',
+    outline: 'bg-white text-ink border-2 border-line',
+    ghost: 'text-plum shadow-none active:translate-y-0',
   }
-  return <button className={`${base} ${variants[variant]} ${className}`} {...props} />
+  const sh = SHADOW[variant] ?? 'var(--color-plum-dark)'
+  return (
+    <button
+      className={`${base} ${variants[variant]} ${className}`}
+      style={{ '--sh': variant === 'ghost' ? 'transparent' : sh, ...style }}
+      {...props}
+    />
+  )
 }
 
 export function Card({ variant = 'default', className = '', ...props }) {
   const variants = {
-    default: 'rounded-3xl border border-line/70 bg-surface shadow-card',
-    dark: 'relative overflow-hidden rounded-3xl bg-plum-deep text-white shadow-float',
+    default: 'rounded-3xl border-2 border-line bg-surface',
+    dark: 'relative overflow-hidden rounded-3xl bg-plum-deep text-white',
+    flat: 'rounded-3xl bg-surface',
   }
   return <div className={`${variants[variant]} ${className}`} {...props} />
 }
@@ -89,10 +116,10 @@ export function Card({ variant = 'default', className = '', ...props }) {
 export function Field({ label, id, className = '', ...props }) {
   return (
     <label className={`block ${className}`}>
-      {label && <span className="mb-1.5 block text-sm font-medium text-ink-soft">{label}</span>}
+      {label && <span className="mb-1.5 block text-sm font-bold text-ink-soft">{label}</span>}
       <input
         id={id}
-        className="w-full rounded-2xl border-2 border-line bg-surface px-4 py-3.5 text-ink outline-none transition focus:border-plum placeholder:text-ink-soft/50"
+        className="w-full rounded-2xl border-2 border-line bg-surface px-4 py-3.5 font-semibold text-ink outline-none transition focus:border-plum placeholder:text-ink-soft/50"
         {...props}
       />
     </label>
@@ -101,11 +128,8 @@ export function Field({ label, id, className = '', ...props }) {
 
 export function Spinner({ className = '' }) {
   return (
-    <div
-      role="status"
-      aria-label="Загрузка"
-      className={`h-6 w-6 animate-spin rounded-full border-2 border-line border-t-plum ${className}`}
-    />
+    <div role="status" aria-label="Загрузка"
+      className={`h-6 w-6 animate-spin rounded-full border-[3px] border-line border-t-plum ${className}`} />
   )
 }
 
@@ -113,22 +137,73 @@ export function Brand({ tone = 'light', className = '' }) {
   const dark = tone === 'dark'
   return (
     <span className={`inline-flex items-center gap-2 ${className}`}>
-      <span className={`grid h-7 w-7 flex-none place-items-center rounded-lg ${dark ? 'bg-white' : 'bg-plum'}`}>
-        <svg viewBox="0 0 24 24" fill="none" stroke={dark ? 'var(--color-plum-dark)' : '#fff'} strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4" aria-hidden="true">
+      <span className="grid h-8 w-8 flex-none place-items-center rounded-xl bg-plum" style={{ boxShadow: '0 3px 0 0 var(--color-plum-dark)' }}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4" aria-hidden="true">
           <path d="M5 13l4 4L19 7" />
         </svg>
       </span>
-      <span className={`font-display font-semibold tracking-tight ${dark ? 'text-white' : 'text-ink'}`}>
-        Тренажёр<span className={dark ? 'text-lavender' : 'text-plum'}> ЕНТ</span>
+      <span className={`font-display text-lg font-bold tracking-tight ${dark ? 'text-white' : 'text-ink'}`}>
+        Тренажёр<span className={dark ? 'text-sky' : 'text-plum'}> ЕНТ</span>
       </span>
     </span>
   )
 }
 
-/* Рисующиеся галочка и крестик для чипов ответов */
+/* Стат-чип геймификации (стрик / XP / уровень) */
+export function StatChip({ icon: Icon, value, label, color = 'var(--color-amber)', animate = true }) {
+  return (
+    <div className={`flex items-center gap-2 rounded-2xl bg-white/15 px-3 py-2 ${animate ? 'animate-pop' : ''}`}>
+      <Icon className="h-5 w-5 flex-none" style={{ color }} />
+      <div className="leading-none">
+        <div className="font-display text-lg font-bold text-white">{value}</div>
+        <div className="mt-0.5 text-[10px] font-bold uppercase tracking-wide text-white/70">{label}</div>
+      </div>
+    </div>
+  )
+}
+
+/* Конфетти при высоком результате */
+export function Confetti({ fire }) {
+  const ref = useRef(null)
+  useEffect(() => {
+    if (!fire) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const canvas = ref.current
+    const ctx = canvas.getContext('2d')
+    const W = (canvas.width = canvas.offsetWidth)
+    const H = (canvas.height = canvas.offsetHeight)
+    const colors = ['#2563EB', '#58CC02', '#FF9600', '#1CB0F6', '#8B5CF6', '#E23B3B']
+    const N = 120
+    const parts = Array.from({ length: N }, (_, i) => ({
+      x: W / 2, y: H * 0.32,
+      vx: Math.cos((i / N) * 6.283) * (2 + (i % 7)),
+      vy: Math.sin((i / N) * 6.283) * (2 + (i % 5)) - 6,
+      r: 4 + (i % 4) * 2,
+      c: colors[i % colors.length],
+      rot: i, vr: (i % 2 ? 1 : -1) * 0.2,
+    }))
+    let frame = 0, raf
+    const tick = () => {
+      frame++
+      ctx.clearRect(0, 0, W, H)
+      parts.forEach((p) => {
+        p.vy += 0.22; p.x += p.vx; p.y += p.vy; p.rot += p.vr
+        ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot)
+        ctx.fillStyle = p.c
+        ctx.fillRect(-p.r / 2, -p.r / 2, p.r, p.r * 1.6)
+        ctx.restore()
+      })
+      if (frame < 130) raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [fire])
+  return <canvas ref={ref} className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden="true" />
+}
+
 export function CheckDraw({ className = '' }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2"
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.4"
       strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
       <path d="M5 13l4 4L19 7" className="draw-stroke" />
     </svg>
@@ -136,21 +211,18 @@ export function CheckDraw({ className = '' }) {
 }
 export function CrossDraw({ className = '' }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2"
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.4"
       strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
       <path d="M6 6l12 12M18 6L6 18" className="draw-stroke" />
     </svg>
   )
 }
 
-/* ---- иконки (Lucide-стиль, stroke=currentColor) ---- */
-function Svg({ children, className = '' }) {
+/* ---- иконки ---- */
+function Svg({ children, className = '', style }) {
   return (
-    <svg
-      viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
-      strokeLinecap="round" strokeLinejoin="round"
-      className={`h-6 w-6 ${className}`} aria-hidden="true"
-    >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"
+      strokeLinecap="round" strokeLinejoin="round" className={`h-6 w-6 ${className}`} style={style} aria-hidden="true">
       {children}
     </svg>
   )
@@ -164,3 +236,7 @@ export const IconChevron = (p) => <Svg {...p}><path d="M9 18l6-6-6-6" /></Svg>
 export const IconArrow = (p) => <Svg {...p}><path d="M5 12h14M13 6l6 6-6 6" /></Svg>
 export const IconRefresh = (p) => <Svg {...p}><path d="M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6" /></Svg>
 export const IconUsers = (p) => <Svg {...p}><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2" /><circle cx="10" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></Svg>
+/* геймификация: огонь-стрик, звезда-XP, корона-уровень */
+export const IconFlame = (p) => <Svg {...p} strokeWidth="1.6"><path d="M12 2c1 3 4 4.5 4 8a4 4 0 0 1-8 0c0-1 .5-2 1-2.5C9 9 9 7 12 2z" fill="currentColor" stroke="none" /><path d="M12 22a6 6 0 0 0 6-6c0-3-2-4.5-3-6-.5 2-2 2.5-3 3.5-.8.8-1 1.7-1 2.5a3 3 0 0 1-3-3c-1 1.2-2 2.6-2 3.5a6 6 0 0 0 6 5.5z" fill="currentColor" stroke="none" /></Svg>
+export const IconStar = (p) => <Svg {...p} strokeWidth="1.6"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.7 1-5.8L3.5 9.7l5.9-.9L12 3z" fill="currentColor" stroke="currentColor" strokeLinejoin="round" /></Svg>
+export const IconCrown = (p) => <Svg {...p} strokeWidth="1.6"><path d="M3 8l4 4 5-7 5 7 4-4-2 11H5L3 8z" fill="currentColor" stroke="currentColor" strokeLinejoin="round" /></Svg>

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { Arcs, Button, Card, CountUp, Ring, Spinner } from '../components/ui'
+import { Button, Card, Confetti, CountUp, MathShapes, Ring, Spinner } from '../components/ui'
 
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F']
 const QUESTION_LIMIT = 30
@@ -17,27 +17,24 @@ function shuffle(arr) {
   return a
 }
 
-const fmtTime = (s) =>
-  `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
+const fmtTime = (s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
 
 export default function Exam() {
   const { user } = useAuth()
   const navigate = useNavigate()
 
-  const [stage, setStage] = useState('loading') // loading | intro | running | done
+  const [stage, setStage] = useState('loading')
   const [questions, setQuestions] = useState([])
   const [idx, setIdx] = useState(0)
-  const [answers, setAnswers] = useState([])     // выбранный индекс или null
+  const [answers, setAnswers] = useState([])
   const [remaining, setRemaining] = useState(0)
-  const [result, setResult] = useState(null)     // { correct, total, spentSec, saveError }
+  const [result, setResult] = useState(null)
   const [exitAsk, setExitAsk] = useState(false)
 
   const deadlineRef = useRef(0)
   const startedAtRef = useRef(null)
   const finishedRef = useRef(false)
   const exitTimer = useRef(null)
-  // Ответы дублируем в ref: finish() может вызваться из таймера,
-  // и читать их из state было бы гонкой со StrictMode/замыканиями.
   const answersRef = useRef([])
 
   const totalSec = questions.length * SECONDS_PER_QUESTION
@@ -68,7 +65,6 @@ export default function Exam() {
     setStage('running')
   }
 
-  /* таймер: считаем от дедлайна, чтобы не накапливать дрейф */
   useEffect(() => {
     if (stage !== 'running') return
     const t = setInterval(() => {
@@ -96,37 +92,23 @@ export default function Exam() {
 
     const finalAnswers = answersRef.current
     const total = questions.length
-    const correct = questions.reduce(
-      (s, q, i) => s + (finalAnswers[i] === q.correct_index ? 1 : 0), 0)
-    const spentSec = Math.min(totalSec,
-      Math.round((Date.now() - new Date(startedAtRef.current).getTime()) / 1000))
+    const correct = questions.reduce((s, q, i) => s + (finalAnswers[i] === q.correct_index ? 1 : 0), 0)
+    const spentSec = Math.min(totalSec, Math.round((Date.now() - new Date(startedAtRef.current).getTime()) / 1000))
 
     setResult({ correct, total, spentSec, saveError: false })
     setStage('done')
 
-    // Сохраняем: exams + attempts (только отвеченные)
     const { data: exam, error } = await supabase
       .from('exams')
-      .insert({
-        student_id: user.id,
-        total,
-        correct,
-        started_at: startedAtRef.current,
-        finished_at: new Date().toISOString(),
-      })
-      .select('id')
-      .single()
+      .insert({ student_id: user.id, total, correct, started_at: startedAtRef.current, finished_at: new Date().toISOString() })
+      .select('id').single()
     if (error) { setResult((r) => ({ ...r, saveError: true })); return }
     const rows = questions
       .map((q, i) => ({ q, sel: finalAnswers[i] }))
       .filter((x) => x.sel !== null)
       .map((x) => ({
-        student_id: user.id,
-        question_id: x.q.id,
-        selected_index: x.sel,
-        is_correct: x.sel === x.q.correct_index,
-        mode: 'exam',
-        exam_id: exam.id,
+        student_id: user.id, question_id: x.q.id, selected_index: x.sel,
+        is_correct: x.sel === x.q.correct_index, mode: 'exam', exam_id: exam.id,
       }))
     if (rows.length) {
       const { error: e2 } = await supabase.from('attempts').insert(rows)
@@ -140,18 +122,16 @@ export default function Exam() {
     exitTimer.current = setTimeout(() => setExitAsk(false), 4000)
   }
 
-  /* ---------- загрузка ---------- */
   if (stage === 'loading') {
     return <div className="grid min-h-dvh place-items-center"><Spinner className="h-8 w-8" /></div>
   }
 
-  /* ---------- нет вопросов ---------- */
   if (stage === 'empty') {
     return (
       <div className="mx-auto min-h-dvh max-w-lg px-4 pt-16">
-        <Card className="animate-rise p-8 text-center">
-          <h1 className="font-display text-xl font-semibold">Заданий пока нет</h1>
-          <p className="mx-auto mt-3 max-w-xs text-sm text-ink-soft">
+        <Card className="animate-pop p-8 text-center">
+          <h1 className="font-display text-xl font-bold">Заданий пока нет</h1>
+          <p className="mx-auto mt-3 max-w-xs text-sm font-semibold text-ink-soft">
             Учитель скоро добавит вопросы — и пробный ЕНТ станет доступен.
           </p>
           <Link to="/" className="mt-6 inline-block"><Button variant="outline">На главную</Button></Link>
@@ -164,32 +144,30 @@ export default function Exam() {
   if (stage === 'intro') {
     return (
       <div className="mx-auto min-h-dvh max-w-lg px-4 pb-12 pt-12">
-        <Card variant="dark" className="animate-rise p-7">
-          <Arcs className="pointer-events-none absolute -right-14 -top-14 h-52 w-52 text-plum-glow" />
-          <p className="relative font-mono text-[11px] uppercase tracking-[0.18em] text-lavender">
-            Пробный ЕНТ
-          </p>
+        <div className="relative animate-pop overflow-hidden rounded-3xl bg-amber p-7 text-white" style={{ boxShadow: '0 6px 0 0 var(--color-amber-dark)' }}>
+          <MathShapes className="opacity-70" />
+          <p className="relative font-display text-sm font-bold uppercase tracking-wide text-white/80">Пробный ЕНТ</p>
           <div className="relative mt-4 flex gap-3">
-            <div className="flex-1 rounded-2xl bg-white/10 p-4">
-              <p className="font-mono text-3xl font-semibold">{questions.length}</p>
-              <p className="mt-0.5 text-xs text-lavender">вопросов</p>
+            <div className="flex-1 rounded-2xl bg-white/20 p-4">
+              <p className="font-display text-3xl font-bold">{questions.length}</p>
+              <p className="mt-0.5 text-xs font-bold text-white/80">вопросов</p>
             </div>
-            <div className="flex-1 rounded-2xl bg-white/10 p-4">
-              <p className="font-mono text-3xl font-semibold">{Math.round(totalSec / 60)}</p>
-              <p className="mt-0.5 text-xs text-lavender">минут</p>
+            <div className="flex-1 rounded-2xl bg-white/20 p-4">
+              <p className="font-display text-3xl font-bold">{Math.round(totalSec / 60)}</p>
+              <p className="mt-0.5 text-xs font-bold text-white/80">минут</p>
             </div>
           </div>
-          <ul className="relative mt-6 space-y-2.5 text-sm leading-relaxed text-lavender">
-            <li className="flex gap-2.5"><span className="text-plum-glow">—</span> Как на экзамене: правильные ответы покажем только в конце.</li>
-            <li className="flex gap-2.5"><span className="text-plum-glow">—</span> Ответ можно изменить, пока не перешли дальше.</li>
-            <li className="flex gap-2.5"><span className="text-plum-glow">—</span> Пропущенный вопрос засчитается как ошибка.</li>
-            <li className="flex gap-2.5"><span className="text-plum-glow">—</span> Когда время закончится, тест завершится сам.</li>
+          <ul className="relative mt-6 space-y-2.5 text-sm font-semibold leading-relaxed text-white/90">
+            <li className="flex gap-2.5"><span>✓</span> Как на экзамене: правильные ответы — в конце.</li>
+            <li className="flex gap-2.5"><span>✓</span> Ответ можно изменить, пока не перешёл дальше.</li>
+            <li className="flex gap-2.5"><span>✓</span> Пропущенный вопрос засчитается как ошибка.</li>
+            <li className="flex gap-2.5"><span>✓</span> Время закончится — тест завершится сам.</li>
           </ul>
-          <div className="relative mt-7 flex flex-col gap-2.5">
+          <div className="relative mt-7 flex flex-col gap-3">
             <Button variant="light" onClick={start}>Начать</Button>
-            <Link to="/" className="block"><Button variant="outlineDark" className="w-full">На главную</Button></Link>
+            <Link to="/" className="block"><Button variant="ghost" className="w-full text-white">На главную</Button></Link>
           </div>
-        </Card>
+        </div>
       </div>
     )
   }
@@ -197,82 +175,74 @@ export default function Exam() {
   /* ---------- результат ---------- */
   if (stage === 'done' && result) {
     const pct = result.total ? Math.round((result.correct / result.total) * 100) : 0
+    const win = pct >= 80
     return (
       <div className="mx-auto min-h-dvh max-w-lg px-4 pb-14 pt-10">
-        <Card variant="dark" className="animate-rise p-8 text-center">
-          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-lavender">
-            Пробный ЕНТ завершён
-          </p>
-          <div className="mt-6 flex justify-center">
-            <Ring value={pct} tone="dark" size={172} stroke={12}>
-              <div>
-                <p className="font-mono text-5xl font-semibold"><CountUp value={pct} suffix="%" /></p>
-                <p className="mt-1 text-xs text-lavender">{result.correct} из {result.total}</p>
-              </div>
-            </Ring>
-          </div>
-          <p className="mt-5 text-sm text-lavender">время {fmtTime(result.spentSec)}</p>
-          {result.saveError && (
-            <p className="mt-2 text-xs text-lavender">
-              Результат не сохранился (проблемы с сетью), но разбор ниже доступен.
-            </p>
-          )}
-        </Card>
+        <div className="relative">
+          <Confetti fire={win} />
+          <Card className="animate-pop p-8 text-center">
+            <p className="font-display text-sm font-bold uppercase tracking-wide text-ink-soft">Пробный ЕНТ завершён</p>
+            <div className="mt-6 flex justify-center">
+              <Ring value={pct} size={172} stroke={14}>
+                <div>
+                  <p className="font-display text-5xl font-bold text-plum"><CountUp value={pct} suffix="%" /></p>
+                  <p className="mt-1 text-xs font-bold text-ink-soft">{result.correct} из {result.total}</p>
+                </div>
+              </Ring>
+            </div>
+            <p className="mt-5 text-sm font-bold text-ink-soft">время {fmtTime(result.spentSec)}</p>
+            {result.saveError && (
+              <p className="mt-2 text-xs font-semibold text-ink-soft">Результат не сохранился (сеть), но разбор ниже доступен.</p>
+            )}
+          </Card>
+        </div>
 
-        <h2 className="mb-3 mt-8 animate-rise font-display text-lg font-semibold" style={{ animationDelay: '120ms' }}>
-          Разбор ответов
-        </h2>
+        <h2 className="mb-3 mt-8 font-display text-lg font-bold">Разбор ответов</h2>
         <div className="space-y-2.5">
           {questions.map((q, qi) => {
             const sel = answers[qi]
             const right = sel === q.correct_index
             return (
-              <details key={q.id} className="group animate-rise rounded-2xl border border-line/70 bg-surface shadow-card open:border-plum"
-                style={{ animationDelay: `${160 + qi * 40}ms` }}>
+              <details key={q.id} className="group rounded-2xl border-2 border-line bg-surface open:border-plum">
                 <summary className="flex cursor-pointer list-none items-start gap-3 p-4 [&::-webkit-details-marker]:hidden">
                   <span className={[
-                    'mt-0.5 grid h-7 w-7 flex-none place-items-center rounded-lg font-mono text-xs font-semibold',
+                    'mt-0.5 grid h-7 w-7 flex-none place-items-center rounded-lg font-display text-xs font-bold',
                     right ? 'bg-ok-tint text-ok' : sel === null ? 'bg-line text-ink-soft' : 'bg-bad-tint text-bad',
-                  ].join(' ')}>
-                    {sel === null ? '—' : LETTERS[sel]}
-                  </span>
-                  <span className="min-w-0 flex-1 text-sm font-medium leading-snug line-clamp-2">{q.body}</span>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                    className="mt-1 h-4 w-4 flex-none text-ink-soft transition group-open:rotate-180" aria-hidden="true">
-                    <path d="M6 9l6 6 6-6" />
-                  </svg>
+                  ].join(' ')}>{sel === null ? '—' : LETTERS[sel]}</span>
+                  <span className="min-w-0 flex-1 text-sm font-bold leading-snug line-clamp-2">{q.body}</span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"
+                    className="mt-1 h-4 w-4 flex-none text-ink-soft transition group-open:rotate-180" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
                 </summary>
-                <div className="border-t border-line px-4 pb-4 pt-3">
+                <div className="border-t-2 border-line px-4 pb-4 pt-3">
                   <div className="space-y-1.5">
                     {q.options.map((opt, i) => {
                       const isCorrect = i === q.correct_index
                       const isPicked = i === sel
                       return (
                         <div key={i} className={[
-                          'flex items-center gap-2.5 rounded-lg border px-3 py-2 text-sm',
-                          isCorrect ? 'border-ok bg-ok-tint font-medium' :
-                          isPicked ? 'border-bad bg-bad-tint' : 'border-line opacity-60',
+                          'flex items-center gap-2.5 rounded-xl border-2 px-3 py-2 text-sm font-semibold',
+                          isCorrect ? 'border-ok-bright bg-ok-tint' : isPicked ? 'border-bad bg-bad-tint' : 'border-line opacity-60',
                         ].join(' ')}>
                           <span className={[
-                            'grid h-6 w-6 flex-none place-items-center rounded font-mono text-xs font-semibold',
-                            isCorrect ? 'bg-ok text-white' : isPicked ? 'bg-bad text-white' : 'bg-plum-tint text-plum',
+                            'grid h-6 w-6 flex-none place-items-center rounded font-display text-xs font-bold',
+                            isCorrect ? 'bg-ok-bright text-white' : isPicked ? 'bg-bad text-white' : 'bg-plum-tint text-plum',
                           ].join(' ')}>{LETTERS[i]}</span>
                           <span className="min-w-0 flex-1">{opt}</span>
-                          {isCorrect && <span className="text-xs font-semibold text-ok">верно</span>}
-                          {isPicked && !isCorrect && <span className="text-xs text-bad">ваш ответ</span>}
+                          {isCorrect && <span className="text-xs font-bold text-ok">верно</span>}
+                          {isPicked && !isCorrect && <span className="text-xs font-bold text-bad">ваш ответ</span>}
                         </div>
                       )
                     })}
                   </div>
-                  {sel === null && <p className="mt-2.5 text-xs text-ink-soft">Вопрос был пропущен.</p>}
-                  {q.explanation && <p className="mt-3 text-sm leading-relaxed text-ink-soft">{q.explanation}</p>}
+                  {sel === null && <p className="mt-2.5 text-xs font-semibold text-ink-soft">Вопрос был пропущен.</p>}
+                  {q.explanation && <p className="mt-3 text-sm font-semibold text-ink-soft">{q.explanation}</p>}
                 </div>
               </details>
             )
           })}
         </div>
 
-        <div className="mt-7 flex flex-col gap-2.5">
+        <div className="mt-7 flex flex-col gap-3">
           <Link to="/cabinet" className="block"><Button className="w-full">Мой прогресс</Button></Link>
           <Link to="/" className="block"><Button variant="outline" className="w-full">На главную</Button></Link>
         </div>
@@ -287,72 +257,53 @@ export default function Exam() {
 
   return (
     <div className="mx-auto min-h-dvh max-w-lg px-4 pb-28">
-      <header className="sticky top-0 z-10 -mx-4 mb-6 border-b border-line/60 bg-paper/85 px-4 pb-3.5 pt-4 backdrop-blur-md">
+      <header className="sticky top-0 z-10 -mx-4 mb-6 bg-paper/85 px-4 pb-3.5 pt-4 backdrop-blur-md">
         <div className="mb-3 flex items-center justify-between gap-3">
           {exitAsk ? (
-            <button onClick={() => navigate('/')}
-              className="rounded-xl bg-bad px-3 py-1.5 text-sm font-semibold text-white">
-              Выйти? Результат пропадёт
-            </button>
+            <Button variant="danger" onClick={() => navigate('/')} className="px-3 py-1.5 text-xs">Выйти? Результат пропадёт</Button>
           ) : (
-            <button onClick={askExit}
-              className="text-sm font-medium text-ink-soft transition hover:text-plum">
-              ← Выйти
-            </button>
+            <button onClick={askExit} className="text-sm font-bold text-ink-soft transition hover:text-plum">← Выйти</button>
           )}
-          <span
-            role="timer" aria-label="Оставшееся время"
+          <span role="timer" aria-label="Оставшееся время"
             className={[
-              'rounded-full border px-3.5 py-1 font-mono text-sm font-semibold tabular-nums transition',
-              lowTime
-                ? 'animate-pulse-soft border-bad bg-bad-tint text-bad'
-                : 'border-line bg-surface text-ink',
+              'rounded-full px-3.5 py-1 font-display text-sm font-bold tabular-nums',
+              lowTime ? 'animate-pulse-soft bg-bad-tint text-bad' : 'bg-white text-ink',
             ].join(' ')}
-          >
-            {fmtTime(remaining)}
-          </span>
+            style={{ boxShadow: '0 2px 0 0 var(--color-line)' }}>{fmtTime(remaining)}</span>
         </div>
         <div className="flex items-center gap-3">
-          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-line">
-            <div className="h-full rounded-full bg-plum transition-all duration-500"
-              style={{ width: `${(idx / questions.length) * 100}%` }} />
+          <div className="h-3 flex-1 overflow-hidden rounded-full bg-line">
+            <div className="h-full rounded-full bg-plum transition-all duration-500" style={{ width: `${(idx / questions.length) * 100}%` }} />
           </div>
-          <span className="font-mono text-xs text-ink-soft">
-            <b className="font-semibold text-plum">{idx + 1}</b>/{questions.length}
-          </span>
+          <span className="font-display text-xs font-bold text-ink-soft"><b className="text-plum">{idx + 1}</b>/{questions.length}</span>
         </div>
       </header>
 
-      <h1 key={q.id} className="mb-6 animate-rise font-display text-[1.55rem] font-semibold leading-snug tracking-tight">
-        {q.body}
-      </h1>
+      <h1 key={q.id} className="mb-6 animate-rise font-display text-[1.6rem] font-bold leading-snug">{q.body}</h1>
 
       <div className="space-y-3" role="group" aria-label="Варианты ответа">
         {q.options.map((opt, i) => {
           const isPicked = sel === i
           return (
             <button key={`${q.id}-${i}`} onClick={() => pick(i)} aria-pressed={isPicked}
-              style={{ animationDelay: `${60 + i * 50}ms` }}
+              style={{ animationDelay: `${50 + i * 45}ms`, boxShadow: isPicked ? 'none' : '0 3px 0 0 var(--color-line)' }}
               className={[
-                'flex w-full animate-rise items-center gap-3.5 rounded-2xl border-2 bg-surface p-4 text-left shadow-card transition active:scale-[0.985]',
-                isPicked ? 'border-plum bg-plum-tint' : 'border-line hover:border-plum hover:shadow-float',
-              ].join(' ')}
-            >
+                'flex w-full animate-rise items-center gap-3.5 rounded-2xl border-2 bg-surface p-4 text-left transition active:translate-y-0.5',
+                isPicked ? 'border-plum bg-plum-tint' : 'border-line hover:border-plum',
+              ].join(' ')}>
               <span className={[
-                'grid h-10 w-10 flex-none place-items-center rounded-xl font-mono text-sm font-semibold transition',
+                'grid h-11 w-11 flex-none place-items-center rounded-xl font-display text-base font-bold transition',
                 isPicked ? 'bg-plum text-white' : 'bg-plum-tint text-plum',
               ].join(' ')}>{LETTERS[i]}</span>
-              <span className="min-w-0 flex-1 font-medium leading-snug">{opt}</span>
+              <span className="min-w-0 flex-1 font-bold leading-snug">{opt}</span>
             </button>
           )
         })}
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 border-t border-line/60 bg-paper/95 px-4 pb-[calc(14px+env(safe-area-inset-bottom))] pt-3 backdrop-blur-md">
+      <div className="fixed inset-x-0 bottom-0 border-t-2 border-line bg-paper/95 px-4 pb-[calc(14px+env(safe-area-inset-bottom))] pt-3 backdrop-blur-md">
         <div className="mx-auto flex max-w-lg gap-2.5">
-          <Button variant="ghost" onClick={next} className="flex-none">
-            Пропустить
-          </Button>
+          <Button variant="ghost" onClick={next} className="flex-none">Пропустить</Button>
           <Button onClick={next} disabled={sel === null} className="flex-1">
             {idx + 1 >= questions.length ? 'Завершить' : 'Далее'}
           </Button>

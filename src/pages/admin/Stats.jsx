@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Card, CountUp, Spinner } from '../../components/ui'
+import { Card, CountUp, MathShapes, Spinner } from '../../components/ui'
 import { supabase } from '../../lib/supabase'
 
 export default function AdminStats() {
@@ -36,12 +36,9 @@ export default function AdminStats() {
       .map((st) => {
         const s = agg.get(st.id) ?? { total: 0, correct: 0, lastAt: null }
         return {
-          id: st.id,
-          name: st.full_name?.trim() || 'Без имени',
-          total: s.total,
-          correct: s.correct,
-          pct: s.total ? Math.round((s.correct / s.total) * 100) : null,
-          lastAt: s.lastAt,
+          id: st.id, name: st.full_name?.trim() || 'Без имени',
+          total: s.total, correct: s.correct,
+          pct: s.total ? Math.round((s.correct / s.total) * 100) : null, lastAt: s.lastAt,
         }
       })
       .sort((x, y) => y.total - x.total || x.name.localeCompare(y.name, 'ru'))
@@ -57,56 +54,45 @@ export default function AdminStats() {
   return (
     <div className="mx-auto min-h-dvh max-w-lg px-4 pb-16 pt-5">
       <header className="mb-6 flex items-center justify-between">
-        <Link to="/" className="text-sm font-medium text-ink-soft transition hover:text-plum">← На главную</Link>
-        <Link to="/admin/questions" className="text-sm font-medium text-plum underline underline-offset-2">Задания</Link>
+        <Link to="/" className="text-sm font-bold text-ink-soft transition hover:text-plum">← На главную</Link>
+        <Link to="/admin/questions" className="font-display text-sm font-bold text-plum underline underline-offset-2">Задания</Link>
       </header>
 
-      <h1 className="mb-5 font-display text-2xl font-semibold tracking-tight">Статистика класса</h1>
+      <h1 className="mb-5 font-display text-2xl font-bold">Статистика класса</h1>
 
-      {loadError && (
-        <Card className="mb-4 border-bad p-4 text-sm text-ink-soft">
-          Не получилось загрузить данные. Обновите страницу.
-        </Card>
-      )}
+      {loadError && <Card className="mb-4 border-bad p-4 text-sm font-semibold text-ink-soft">Не получилось загрузить данные. Обновите страницу.</Card>}
 
-      <div className="mb-6 grid grid-cols-2 gap-3">
-        <Card className="p-4">
-          <p className="text-xs uppercase tracking-wider text-ink-soft">Учеников</p>
-          <p className="mt-1 font-mono text-4xl font-semibold text-ink"><CountUp value={rows.length} /></p>
-          <p className="mt-1 text-xs text-ink-soft">решали: {activeCount}</p>
-        </Card>
-        <Card className="p-4">
-          <p className="text-xs uppercase tracking-wider text-ink-soft">Ответов</p>
-          <p className="mt-1 font-mono text-4xl font-semibold text-plum"><CountUp value={totalAnswers} /></p>
-          <p className="mt-1 text-xs text-ink-soft">всего от класса</p>
-        </Card>
+      <div className="relative mb-6 overflow-hidden rounded-3xl bg-plum p-6 text-white" style={{ boxShadow: '0 5px 0 0 var(--color-plum-dark)' }}>
+        <MathShapes />
+        <div className="relative flex gap-3">
+          <div className="flex-1 rounded-2xl bg-white/15 p-4">
+            <p className="font-display text-4xl font-bold"><CountUp value={rows.length} /></p>
+            <p className="mt-0.5 text-xs font-bold text-white/80">учеников · решали {activeCount}</p>
+          </div>
+          <div className="flex-1 rounded-2xl bg-white/15 p-4">
+            <p className="font-display text-4xl font-bold"><CountUp value={totalAnswers} /></p>
+            <p className="mt-0.5 text-xs font-bold text-white/80">ответов от класса</p>
+          </div>
+        </div>
       </div>
 
       {rows.length === 0 ? (
         <Card className="p-8 text-center">
-          <p className="text-ink-soft">
-            Учеников пока нет. Отправьте им ссылку на сайт — после регистрации они появятся здесь.
-          </p>
+          <p className="font-semibold text-ink-soft">Учеников пока нет. Отправьте им ссылку на сайт — после регистрации они появятся здесь.</p>
         </Card>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-2.5">
           {rows.map((r) => (
             <Card key={r.id} className="flex items-center gap-3 p-4">
               <div className="min-w-0 flex-1">
-                <p className="truncate font-medium">{r.name}</p>
-                <p className="mt-0.5 text-xs text-ink-soft">
-                  {r.total === 0
-                    ? 'ещё не решал(а)'
-                    : `решено ${r.total} · верно ${r.correct}`}
-                </p>
+                <p className="truncate font-bold">{r.name}</p>
+                <p className="mt-0.5 text-xs font-semibold text-ink-soft">{r.total === 0 ? 'ещё не решал(а)' : `решено ${r.total} · верно ${r.correct}`}</p>
               </div>
               {r.pct !== null && (
                 <span className={[
-                  'flex-none rounded-lg px-2.5 py-1.5 font-mono text-sm font-semibold',
+                  'flex-none rounded-xl px-2.5 py-1.5 font-display text-sm font-bold',
                   r.pct >= 70 ? 'bg-ok-tint text-ok' : r.pct >= 40 ? 'bg-plum-tint text-plum' : 'bg-bad-tint text-bad',
-                ].join(' ')}>
-                  {r.pct}%
-                </span>
+                ].join(' ')}>{r.pct}%</span>
               )}
             </Card>
           ))}
