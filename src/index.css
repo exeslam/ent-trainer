@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+/* ---- Дизайн-система «Слива» (из брифа) ---- */
+@theme {
+  --color-paper: #F5F3F5;
+  --color-surface: #FFFFFF;
+  --color-ink: #211A24;
+  --color-ink-soft: #5C5361;
+  --color-plum: #5B3A6E;
+  --color-plum-dark: #4A2B4D;
+  --color-plum-tint: #EDE6F0;
+  --color-line: #E7E2E9;
+
+  /* функциональные цвета обратной связи (верно/неверно) */
+  --color-ok: #176B4D;
+  --color-ok-tint: #E4F2EC;
+  --color-bad: #A93F38;
+  --color-bad-tint: #F8EAE8;
+
+  --font-display: "Geologica", ui-sans-serif, sans-serif;
+  --font-sans: "Golos Text", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+@layer base {
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  * { -webkit-tap-highlight-color: transparent; }
+  :focus-visible { outline: 2px solid var(--color-plum); outline-offset: 2px; border-radius: 4px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    transition-duration: .001ms !important;
+  }
+}
