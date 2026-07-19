@@ -1,20 +1,21 @@
 @import "tailwindcss";
 
-/* ---- Дизайн-система «Слива» v2 — «включи свет» ---- */
+/* ---- Дизайн-система «Сапфир» — синяя палитра, та же архитектура токенов ----
+   Имена токенов исторически plum-*, значения — синие. */
 @theme {
-  --color-paper: #F5F3F5;
+  --color-paper: #F3F5F8;
   --color-surface: #FFFFFF;
-  --color-ink: #211A24;
-  --color-ink-soft: #5C5361;
-  --color-plum: #5B3A6E;
-  --color-plum-dark: #4A2B4D;
-  --color-plum-tint: #EDE6F0;
-  --color-line: #E7E2E9;
+  --color-ink: #1A2028;
+  --color-ink-soft: #566070;
+  --color-plum: #2E4E96;
+  --color-plum-dark: #24407E;
+  --color-plum-tint: #E7EDF8;
+  --color-line: #E2E7EF;
 
   /* тёмные панели — фирменный элемент */
-  --color-plum-deep: #2A1830;
-  --color-plum-glow: #9D6BBF;
-  --color-lavender: #CBB9D8;
+  --color-plum-deep: #141C36;
+  --color-plum-glow: #5F83D6;
+  --color-lavender: #B9C6E4;
 
   /* функциональные цвета обратной связи (верно/неверно) */
   --color-ok: #176B4D;
@@ -28,9 +29,9 @@
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 
   /* глубина */
-  --shadow-card: 0 1px 2px rgba(33, 26, 36, 0.04), 0 10px 28px -14px rgba(74, 43, 77, 0.22);
-  --shadow-float: 0 2px 6px rgba(33, 26, 36, 0.06), 0 28px 56px -20px rgba(42, 24, 48, 0.45);
-  --shadow-btn: 0 12px 22px -10px rgba(91, 58, 110, 0.55);
+  --shadow-card: 0 1px 2px rgba(26, 32, 40, 0.04), 0 10px 28px -14px rgba(36, 64, 126, 0.22);
+  --shadow-float: 0 2px 6px rgba(26, 32, 40, 0.06), 0 28px 56px -20px rgba(20, 28, 54, 0.45);
+  --shadow-btn: 0 12px 22px -10px rgba(46, 78, 150, 0.55);
 
   /* движение */
   --animate-rise: rise 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) both;
@@ -57,7 +58,7 @@
     margin: 0;
     background-color: var(--color-paper);
     /* мягкий свет сверху — глубина без картинок */
-    background-image: radial-gradient(120% 60% at 50% -10%, rgba(91, 58, 110, 0.07), transparent 60%);
+    background-image: radial-gradient(120% 60% at 50% -10%, rgba(46, 78, 150, 0.07), transparent 60%);
     background-repeat: no-repeat;
     color: var(--color-ink);
     font-family: var(--font-sans);
