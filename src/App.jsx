@@ -1,5 +1,8 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
+import { useAuth } from './context/AuthContext'
 import { RequireAuth, RequireTeacher } from './components/RequireAuth'
+import { Spinner } from './components/ui'
+import Landing from './pages/Landing'
 import Auth from './pages/Auth'
 import Dashboard from './pages/Dashboard'
 import Practice from './pages/Practice'
@@ -8,13 +11,22 @@ import Cabinet from './pages/Cabinet'
 import AdminQuestions from './pages/admin/Questions'
 import AdminStats from './pages/admin/Stats'
 
+/* Главная: гостям — лендинг, вошедшим — кабинет */
+function Home() {
+  const { session, loading } = useAuth()
+  if (loading) {
+    return <div className="grid min-h-dvh place-items-center"><Spinner className="h-8 w-8" /></div>
+  }
+  return session ? <Dashboard /> : <Landing />
+}
+
 export default function App() {
   return (
     <Routes>
+      <Route path="/" element={<Home />} />
       <Route path="/auth" element={<Auth />} />
 
       <Route element={<RequireAuth />}>
-        <Route path="/" element={<Dashboard />} />
         <Route path="/practice" element={<Practice />} />
         <Route path="/exam" element={<Exam />} />
         <Route path="/cabinet" element={<Cabinet />} />

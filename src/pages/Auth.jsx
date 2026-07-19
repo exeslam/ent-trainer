@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { hasSupabase } from '../lib/supabase'
 import { Arcs, Brand, Button, Card, Field } from '../components/ui'
@@ -7,8 +7,9 @@ import { Arcs, Brand, Button, Card, Field } from '../components/ui'
 export default function Auth() {
   const { signIn, signUp } = useAuth()
   const navigate = useNavigate()
+  const [params] = useSearchParams()
 
-  const [mode, setMode] = useState('signin') // 'signin' | 'signup'
+  const [mode, setMode] = useState(params.get('mode') === 'signup' ? 'signup' : 'signin')
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
