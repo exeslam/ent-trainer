@@ -90,6 +90,12 @@ create policy "profiles_read_own"    on public.profiles for select using (id = a
 create policy "profiles_read_all_te" on public.profiles for select using (public.is_teacher());
 create policy "profiles_update_own"  on public.profiles for update using (id = auth.uid());
 
+-- ВАЖНО: RLS-политика на UPDATE не ограничивает НАБОР колонок, поэтому без
+-- колоночных прав ученик мог бы обновить свой profiles.role в 'teacher'.
+-- Разрешаем менять только имя (роль меняет только админ через SQL/service_role).
+revoke update on table public.profiles from anon, authenticated;
+grant  update (full_name) on table public.profiles to authenticated;
+
 -- questions
 drop policy if exists "questions_read"        on public.questions;
 drop policy if exists "questions_teacher_ins" on public.questions;
