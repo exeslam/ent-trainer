@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { Button, Card, CountUp, Spinner } from '../components/ui'
+import { Arcs, Button, Card, CountUp, Ring, Spinner } from '../components/ui'
 
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F']
 
@@ -59,13 +59,15 @@ export default function Cabinet() {
 
   return (
     <div className="mx-auto min-h-dvh max-w-lg px-4 pb-12 pt-5">
-      <header className="mb-6 flex items-center justify-between">
+      <header className="mb-6 flex animate-rise items-center justify-between">
         <Link to="/" className="text-sm font-medium text-ink-soft transition hover:text-plum">
           ← На главную
         </Link>
       </header>
 
-      <h1 className="mb-5 font-display text-2xl font-semibold tracking-tight">Мой прогресс</h1>
+      <h1 className="mb-5 animate-rise font-display text-[2rem] font-bold leading-tight tracking-tight" style={{ animationDelay: '40ms' }}>
+        Мой прогресс
+      </h1>
 
       {loadError && (
         <Card className="mb-4 border-bad p-4 text-sm text-ink-soft">
@@ -74,7 +76,7 @@ export default function Cabinet() {
       )}
 
       {stats.total === 0 ? (
-        <Card className="p-8 text-center">
+        <Card className="animate-rise p-8 text-center">
           <h2 className="font-display text-xl font-semibold">Пока пусто</h2>
           <p className="mx-auto mt-3 max-w-xs text-sm text-ink-soft">
             Решите первые задания — здесь появится ваша статистика и разбор ошибок.
@@ -85,29 +87,31 @@ export default function Cabinet() {
         </Card>
       ) : (
         <>
-          {/* ---- сводка ---- */}
-          <div className="mb-6 grid grid-cols-2 gap-3">
-            <Card className="p-4">
-              <p className="text-xs uppercase tracking-wider text-ink-soft">Решено</p>
-              <p className="mt-1 font-mono text-4xl font-semibold text-ink">
-                <CountUp value={stats.total} />
-              </p>
-              <p className="mt-1 text-xs text-ink-soft">ответов всего</p>
-            </Card>
-            <Card className="p-4">
-              <p className="text-xs uppercase tracking-wider text-ink-soft">Правильно</p>
-              <p className="mt-1 font-mono text-4xl font-semibold text-plum">
-                <CountUp value={stats.pct} suffix="%" />
-              </p>
-              <p className="mt-1 text-xs text-ink-soft">{stats.correct} из {stats.total}</p>
-            </Card>
-          </div>
+          {/* ---- сводка: тёмная панель с кольцом ---- */}
+          <Card variant="dark" className="mb-6 animate-rise p-6" style={{ animationDelay: '90ms' }}>
+            <Arcs className="pointer-events-none absolute -right-16 -top-16 h-52 w-52 text-plum-glow" />
+            <div className="relative flex items-center gap-5">
+              <Ring value={stats.pct} tone="dark" size={128} stroke={10}>
+                <div>
+                  <p className="font-mono text-3xl font-semibold"><CountUp value={stats.pct} suffix="%" /></p>
+                  <p className="mt-0.5 text-[11px] text-lavender">правильных</p>
+                </div>
+              </Ring>
+              <div className="min-w-0 flex-1">
+                <p className="font-mono text-4xl font-semibold"><CountUp value={stats.total} /></p>
+                <p className="mt-0.5 text-sm text-lavender">ответов всего</p>
+                <p className="mt-3 text-sm text-lavender">
+                  верных — <b className="font-semibold text-white">{stats.correct}</b>
+                </p>
+              </div>
+            </div>
+          </Card>
 
           {/* ---- пробные ЕНТ ---- */}
           {exams.length > 0 && (
-            <section className="mb-6">
+            <section className="mb-6 animate-rise" style={{ animationDelay: '140ms' }}>
               <h2 className="mb-3 font-display text-lg font-semibold">Пробные ЕНТ</h2>
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 {exams.map((e) => {
                   const pct = e.total ? Math.round((e.correct / e.total) * 100) : 0
                   const d = new Date(e.finished_at)
@@ -116,7 +120,7 @@ export default function Cabinet() {
                       <div className="min-w-0 flex-1">
                         <p className="font-medium">
                           {d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}
-                          <span className="text-ink-soft font-normal">
+                          <span className="font-normal text-ink-soft">
                             {' · '}
                             {d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
                           </span>
@@ -124,7 +128,7 @@ export default function Cabinet() {
                         <p className="mt-0.5 text-xs text-ink-soft">верно {e.correct} из {e.total}</p>
                       </div>
                       <span className={[
-                        'flex-none rounded-lg px-2.5 py-1.5 font-mono text-sm font-semibold',
+                        'flex-none rounded-xl px-2.5 py-1.5 font-mono text-sm font-semibold',
                         pct >= 70 ? 'bg-ok-tint text-ok' : pct >= 40 ? 'bg-plum-tint text-plum' : 'bg-bad-tint text-bad',
                       ].join(' ')}>{pct}%</span>
                     </Card>
@@ -135,11 +139,11 @@ export default function Cabinet() {
           )}
 
           {/* ---- работа над ошибками ---- */}
-          <section>
+          <section className="animate-rise" style={{ animationDelay: '190ms' }}>
             <h2 className="mb-3 font-display text-lg font-semibold">
               Работа над ошибками
               {stats.mistakes.length > 0 && (
-                <span className="ml-2 inline-grid h-6 min-w-6 place-items-center rounded-full bg-bad-tint px-1.5 font-mono text-xs font-semibold text-bad align-middle">
+                <span className="ml-2 inline-grid h-6 min-w-6 place-items-center rounded-full bg-bad-tint px-1.5 align-middle font-mono text-xs font-semibold text-bad">
                   {stats.mistakes.length}
                 </span>
               )}
@@ -147,7 +151,7 @@ export default function Cabinet() {
 
             {stats.mistakes.length === 0 ? (
               <Card className="border-ok bg-ok-tint/50 p-5">
-                <p className="font-medium text-ok">Ошибок нет — так держать!</p>
+                <p className="font-display font-semibold text-ok">Ошибок нет — так держать!</p>
                 <p className="mt-1 text-sm text-ink-soft">
                   Если ответите неверно, вопрос появится здесь с разбором.
                 </p>
@@ -157,7 +161,7 @@ export default function Cabinet() {
                 {stats.mistakes.map((a) => {
                   const q = a.questions
                   return (
-                    <details key={a.question_id} className="group rounded-2xl border border-line bg-surface open:border-plum">
+                    <details key={a.question_id} className="group rounded-2xl border border-line/70 bg-surface shadow-card open:border-plum">
                       <summary className="flex cursor-pointer list-none items-start gap-3 p-4 [&::-webkit-details-marker]:hidden">
                         <span className="mt-0.5 grid h-7 w-7 flex-none place-items-center rounded-lg bg-bad-tint font-mono text-xs font-semibold text-bad">
                           {LETTERS[a.selected_index] ?? '?'}
@@ -207,7 +211,7 @@ export default function Cabinet() {
             )}
           </section>
 
-          <Link to="/practice" className="mt-7 block">
+          <Link to="/practice" className="mt-7 block animate-rise" style={{ animationDelay: '240ms' }}>
             <Button className="w-full">Продолжить тренировку</Button>
           </Link>
         </>

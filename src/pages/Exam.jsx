@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { Button, Card, CountUp, Spinner } from '../components/ui'
+import { Arcs, Button, Card, CountUp, Ring, Spinner } from '../components/ui'
 
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F']
 const QUESTION_LIMIT = 30
@@ -149,7 +149,7 @@ export default function Exam() {
   if (stage === 'empty') {
     return (
       <div className="mx-auto min-h-dvh max-w-lg px-4 pt-16">
-        <Card className="p-8 text-center">
+        <Card className="animate-rise p-8 text-center">
           <h1 className="font-display text-xl font-semibold">Заданий пока нет</h1>
           <p className="mx-auto mt-3 max-w-xs text-sm text-ink-soft">
             Учитель скоро добавит вопросы — и пробный ЕНТ станет доступен.
@@ -163,21 +163,31 @@ export default function Exam() {
   /* ---------- интро ---------- */
   if (stage === 'intro') {
     return (
-      <div className="mx-auto min-h-dvh max-w-lg px-4 pt-14">
-        <Card className="p-7">
-          <p className="text-xs uppercase tracking-widest text-ink-soft">Пробный ЕНТ</p>
-          <h1 className="mt-2 font-display text-2xl font-semibold tracking-tight">
-            {questions.length} вопросов · {Math.round(totalSec / 60)} минут
-          </h1>
-          <ul className="mt-5 space-y-2.5 text-sm leading-relaxed text-ink-soft">
-            <li className="flex gap-2.5"><span className="text-plum">—</span> Как на экзамене: правильные ответы покажем только в конце.</li>
-            <li className="flex gap-2.5"><span className="text-plum">—</span> Ответ можно изменить, пока не перешли к следующему вопросу.</li>
-            <li className="flex gap-2.5"><span className="text-plum">—</span> Вопрос можно пропустить — он засчитается как ошибка.</li>
-            <li className="flex gap-2.5"><span className="text-plum">—</span> Когда время закончится, тест завершится сам.</li>
+      <div className="mx-auto min-h-dvh max-w-lg px-4 pb-12 pt-12">
+        <Card variant="dark" className="animate-rise p-7">
+          <Arcs className="pointer-events-none absolute -right-14 -top-14 h-52 w-52 text-plum-glow" />
+          <p className="relative font-mono text-[11px] uppercase tracking-[0.18em] text-lavender">
+            Пробный ЕНТ
+          </p>
+          <div className="relative mt-4 flex gap-3">
+            <div className="flex-1 rounded-2xl bg-white/10 p-4">
+              <p className="font-mono text-3xl font-semibold">{questions.length}</p>
+              <p className="mt-0.5 text-xs text-lavender">вопросов</p>
+            </div>
+            <div className="flex-1 rounded-2xl bg-white/10 p-4">
+              <p className="font-mono text-3xl font-semibold">{Math.round(totalSec / 60)}</p>
+              <p className="mt-0.5 text-xs text-lavender">минут</p>
+            </div>
+          </div>
+          <ul className="relative mt-6 space-y-2.5 text-sm leading-relaxed text-lavender">
+            <li className="flex gap-2.5"><span className="text-plum-glow">—</span> Как на экзамене: правильные ответы покажем только в конце.</li>
+            <li className="flex gap-2.5"><span className="text-plum-glow">—</span> Ответ можно изменить, пока не перешли дальше.</li>
+            <li className="flex gap-2.5"><span className="text-plum-glow">—</span> Пропущенный вопрос засчитается как ошибка.</li>
+            <li className="flex gap-2.5"><span className="text-plum-glow">—</span> Когда время закончится, тест завершится сам.</li>
           </ul>
-          <div className="mt-7 flex flex-col gap-2.5">
-            <Button onClick={start}>Начать</Button>
-            <Link to="/" className="block"><Button variant="outline" className="w-full">На главную</Button></Link>
+          <div className="relative mt-7 flex flex-col gap-2.5">
+            <Button variant="light" onClick={start}>Начать</Button>
+            <Link to="/" className="block"><Button variant="outlineDark" className="w-full">На главную</Button></Link>
           </div>
         </Card>
       </div>
@@ -189,26 +199,36 @@ export default function Exam() {
     const pct = result.total ? Math.round((result.correct / result.total) * 100) : 0
     return (
       <div className="mx-auto min-h-dvh max-w-lg px-4 pb-14 pt-10">
-        <Card className="p-8 text-center">
-          <p className="text-sm uppercase tracking-widest text-ink-soft">Пробный ЕНТ завершён</p>
-          <p className="mt-4 font-mono text-6xl font-semibold text-plum"><CountUp value={pct} suffix="%" /></p>
-          <p className="mt-2 text-ink-soft">
-            Правильно {result.correct} из {result.total} · время {fmtTime(result.spentSec)}
+        <Card variant="dark" className="animate-rise p-8 text-center">
+          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-lavender">
+            Пробный ЕНТ завершён
           </p>
+          <div className="mt-6 flex justify-center">
+            <Ring value={pct} tone="dark" size={172} stroke={12}>
+              <div>
+                <p className="font-mono text-5xl font-semibold"><CountUp value={pct} suffix="%" /></p>
+                <p className="mt-1 text-xs text-lavender">{result.correct} из {result.total}</p>
+              </div>
+            </Ring>
+          </div>
+          <p className="mt-5 text-sm text-lavender">время {fmtTime(result.spentSec)}</p>
           {result.saveError && (
-            <p className="mt-3 text-xs text-ink-soft">
+            <p className="mt-2 text-xs text-lavender">
               Результат не сохранился (проблемы с сетью), но разбор ниже доступен.
             </p>
           )}
         </Card>
 
-        <h2 className="mb-3 mt-8 font-display text-lg font-semibold">Разбор ответов</h2>
+        <h2 className="mb-3 mt-8 animate-rise font-display text-lg font-semibold" style={{ animationDelay: '120ms' }}>
+          Разбор ответов
+        </h2>
         <div className="space-y-2.5">
           {questions.map((q, qi) => {
             const sel = answers[qi]
             const right = sel === q.correct_index
             return (
-              <details key={q.id} className="group rounded-2xl border border-line bg-surface open:border-plum">
+              <details key={q.id} className="group animate-rise rounded-2xl border border-line/70 bg-surface shadow-card open:border-plum"
+                style={{ animationDelay: `${160 + qi * 40}ms` }}>
                 <summary className="flex cursor-pointer list-none items-start gap-3 p-4 [&::-webkit-details-marker]:hidden">
                   <span className={[
                     'mt-0.5 grid h-7 w-7 flex-none place-items-center rounded-lg font-mono text-xs font-semibold',
@@ -267,11 +287,11 @@ export default function Exam() {
 
   return (
     <div className="mx-auto min-h-dvh max-w-lg px-4 pb-28">
-      <header className="sticky top-0 z-10 -mx-4 mb-5 border-b border-line bg-paper/90 px-4 pb-3 pt-4 backdrop-blur">
-        <div className="mb-2.5 flex items-center justify-between gap-3">
+      <header className="sticky top-0 z-10 -mx-4 mb-6 border-b border-line/60 bg-paper/85 px-4 pb-3.5 pt-4 backdrop-blur-md">
+        <div className="mb-3 flex items-center justify-between gap-3">
           {exitAsk ? (
             <button onClick={() => navigate('/')}
-              className="rounded-lg bg-bad px-3 py-1.5 text-sm font-semibold text-white">
+              className="rounded-xl bg-bad px-3 py-1.5 text-sm font-semibold text-white">
               Выйти? Результат пропадёт
             </button>
           ) : (
@@ -282,13 +302,18 @@ export default function Exam() {
           )}
           <span
             role="timer" aria-label="Оставшееся время"
-            className={`font-mono text-base font-semibold tabular-nums ${lowTime ? 'text-bad' : 'text-ink'}`}
+            className={[
+              'rounded-full border px-3.5 py-1 font-mono text-sm font-semibold tabular-nums transition',
+              lowTime
+                ? 'animate-pulse-soft border-bad bg-bad-tint text-bad'
+                : 'border-line bg-surface text-ink',
+            ].join(' ')}
           >
             {fmtTime(remaining)}
           </span>
         </div>
         <div className="flex items-center gap-3">
-          <div className="h-1 flex-1 overflow-hidden rounded-full bg-line">
+          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-line">
             <div className="h-full rounded-full bg-plum transition-all duration-500"
               style={{ width: `${(idx / questions.length) * 100}%` }} />
           </div>
@@ -298,20 +323,23 @@ export default function Exam() {
         </div>
       </header>
 
-      <h1 className="mb-5 font-display text-xl font-semibold leading-snug">{q.body}</h1>
+      <h1 key={q.id} className="mb-6 animate-rise font-display text-[1.55rem] font-semibold leading-snug tracking-tight">
+        {q.body}
+      </h1>
 
-      <div className="space-y-2.5" role="group" aria-label="Варианты ответа">
+      <div className="space-y-3" role="group" aria-label="Варианты ответа">
         {q.options.map((opt, i) => {
           const isPicked = sel === i
           return (
-            <button key={i} onClick={() => pick(i)} aria-pressed={isPicked}
+            <button key={`${q.id}-${i}`} onClick={() => pick(i)} aria-pressed={isPicked}
+              style={{ animationDelay: `${60 + i * 50}ms` }}
               className={[
-                'flex w-full items-center gap-3.5 rounded-xl border-2 bg-surface p-4 text-left transition active:translate-y-px',
-                isPicked ? 'border-plum bg-plum-tint' : 'border-line hover:border-plum',
+                'flex w-full animate-rise items-center gap-3.5 rounded-2xl border-2 bg-surface p-4 text-left shadow-card transition active:scale-[0.985]',
+                isPicked ? 'border-plum bg-plum-tint' : 'border-line hover:border-plum hover:shadow-float',
               ].join(' ')}
             >
               <span className={[
-                'grid h-9 w-9 flex-none place-items-center rounded-lg font-mono text-sm font-semibold transition',
+                'grid h-10 w-10 flex-none place-items-center rounded-xl font-mono text-sm font-semibold transition',
                 isPicked ? 'bg-plum text-white' : 'bg-plum-tint text-plum',
               ].join(' ')}>{LETTERS[i]}</span>
               <span className="min-w-0 flex-1 font-medium leading-snug">{opt}</span>
@@ -320,7 +348,7 @@ export default function Exam() {
         })}
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 border-t border-line bg-paper/95 px-4 pb-[calc(14px+env(safe-area-inset-bottom))] pt-3 backdrop-blur">
+      <div className="fixed inset-x-0 bottom-0 border-t border-line/60 bg-paper/95 px-4 pb-[calc(14px+env(safe-area-inset-bottom))] pt-3 backdrop-blur-md">
         <div className="mx-auto flex max-w-lg gap-2.5">
           <Button variant="ghost" onClick={next} className="flex-none">
             Пропустить

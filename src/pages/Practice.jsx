@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { Button, Card, CountUp, Spinner } from '../components/ui'
+import { Button, Card, CheckDraw, CountUp, CrossDraw, Ring, Spinner } from '../components/ui'
 
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F']
 
@@ -16,18 +16,18 @@ function shuffle(arr) {
 }
 
 function TopBar({ index, total }) {
-  const pct = total ? Math.round(((index) / total) * 100) : 0
+  const pct = total ? Math.round((index / total) * 100) : 0
   return (
-    <header className="sticky top-0 z-10 -mx-4 mb-5 border-b border-line bg-paper/90 px-4 pb-3 pt-4 backdrop-blur">
-      <div className="mb-2.5 flex items-center justify-between">
+    <header className="sticky top-0 z-10 -mx-4 mb-6 border-b border-line/60 bg-paper/85 px-4 pb-3.5 pt-4 backdrop-blur-md">
+      <div className="mb-3 flex items-center justify-between">
         <Link to="/" className="text-sm font-medium text-ink-soft transition hover:text-plum">
           ← Завершить
         </Link>
-        <span className="font-mono text-sm text-ink-soft">
+        <span className="rounded-full border border-line bg-surface px-3 py-1 font-mono text-xs text-ink-soft">
           <b className="font-semibold text-plum">{Math.min(index + 1, total)}</b> / {total}
         </span>
       </div>
-      <div className="h-1 overflow-hidden rounded-full bg-line" role="progressbar"
+      <div className="h-1.5 overflow-hidden rounded-full bg-line" role="progressbar"
         aria-valuemin={0} aria-valuemax={total} aria-valuenow={index}
         aria-label="Прогресс тренировки">
         <div className="h-full rounded-full bg-plum transition-all duration-500"
@@ -103,7 +103,7 @@ export default function Practice() {
   if (queue.length === 0) {
     return (
       <div className="mx-auto min-h-dvh max-w-lg px-4 pt-16">
-        <Card className="p-8 text-center">
+        <Card className="animate-rise p-8 text-center">
           <h1 className="font-display text-xl font-semibold">
             {loadError ? 'Не получилось загрузить задания' : 'Заданий пока нет'}
           </h1>
@@ -129,25 +129,29 @@ export default function Practice() {
       pct >= 40 ? 'Неплохо — продолжайте тренироваться.' :
       'Главное — практика. Попробуйте ещё раз!'
     return (
-      <div className="mx-auto min-h-dvh max-w-lg px-4 pt-16">
-        <Card className="p-8 text-center">
-          <p className="text-sm uppercase tracking-widest text-ink-soft">Тренировка завершена</p>
-          <p className="mt-4 font-mono text-6xl font-semibold text-plum">
-            <CountUp value={pct} suffix="%" />
+      <div className="mx-auto min-h-dvh max-w-lg px-4 pb-12 pt-12">
+        <Card variant="dark" className="animate-rise p-8 text-center">
+          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-lavender">
+            Тренировка завершена
           </p>
-          <p className="mt-2 text-ink-soft">
-            Правильно {correctCount} из {queue.length}
-          </p>
-          <p className="mt-4 font-medium">{word}</p>
+          <div className="mt-6 flex justify-center">
+            <Ring value={pct} tone="dark" size={172} stroke={12}>
+              <div>
+                <p className="font-mono text-5xl font-semibold"><CountUp value={pct} suffix="%" /></p>
+                <p className="mt-1 text-xs text-lavender">{correctCount} из {queue.length}</p>
+              </div>
+            </Ring>
+          </div>
+          <p className="mt-6 font-display text-lg font-semibold">{word}</p>
           {failedWrites > 0 && (
-            <p className="mt-3 text-xs text-ink-soft">
+            <p className="mt-2 text-xs text-lavender">
               Часть ответов не сохранилась (проблемы с сетью) — на результат это не влияет.
             </p>
           )}
           <div className="mt-7 flex flex-col gap-2.5">
-            <Button onClick={restart}>Ещё раз</Button>
+            <Button variant="light" onClick={restart}>Ещё раз</Button>
             <Link to="/" className="block">
-              <Button variant="outline" className="w-full">На главную</Button>
+              <Button variant="outlineDark" className="w-full">На главную</Button>
             </Link>
           </div>
         </Card>
@@ -164,31 +168,32 @@ export default function Practice() {
     <div className="mx-auto min-h-dvh max-w-lg px-4 pb-28">
       <TopBar index={idx} total={queue.length} />
 
-      <h1 className="mb-5 font-display text-xl font-semibold leading-snug">
+      <h1 key={q.id} className="mb-6 animate-rise font-display text-[1.55rem] font-semibold leading-snug tracking-tight">
         {q.body}
       </h1>
 
-      <div className="space-y-2.5" role="group" aria-label="Варианты ответа">
+      <div className="space-y-3" role="group" aria-label="Варианты ответа">
         {q.options.map((opt, i) => {
           const isCorrectOpt = answered && i === q.correct_index
           const isWrongPick = answered && picked === i && !isCorrectOpt
           const dim = answered && !isCorrectOpt && !isWrongPick
           return (
             <button
-              key={i}
+              key={`${q.id}-${i}`}
               onClick={() => pick(i)}
               disabled={answered}
+              style={{ animationDelay: `${60 + i * 50}ms` }}
               className={[
-                'flex w-full items-center gap-3.5 rounded-xl border-2 bg-surface p-4 text-left transition',
+                'flex w-full animate-rise items-center gap-3.5 rounded-2xl border-2 bg-surface p-4 text-left shadow-card transition',
                 'disabled:pointer-events-none',
                 isCorrectOpt ? 'border-ok bg-ok-tint' :
-                isWrongPick ? 'border-bad bg-bad-tint' :
-                dim ? 'border-line opacity-45' :
-                'border-line hover:border-plum active:translate-y-px',
+                isWrongPick ? 'animate-shake border-bad bg-bad-tint' :
+                dim ? 'border-line opacity-40 shadow-none' :
+                'border-line hover:border-plum hover:shadow-float active:scale-[0.985]',
               ].join(' ')}
             >
               <span className={[
-                'grid h-9 w-9 flex-none place-items-center rounded-lg font-mono text-sm font-semibold transition',
+                'grid h-10 w-10 flex-none place-items-center rounded-xl font-mono text-sm font-semibold transition',
                 isCorrectOpt ? 'bg-ok text-white' :
                 isWrongPick ? 'bg-bad text-white' :
                 'bg-plum-tint text-plum',
@@ -196,6 +201,8 @@ export default function Practice() {
                 {LETTERS[i]}
               </span>
               <span className="min-w-0 flex-1 font-medium leading-snug">{opt}</span>
+              {isCorrectOpt && <CheckDraw className="h-6 w-6 flex-none text-ok" />}
+              {isWrongPick && <CrossDraw className="h-6 w-6 flex-none text-bad" />}
             </button>
           )
         })}
@@ -204,8 +211,8 @@ export default function Practice() {
       {/* обратная связь */}
       <div aria-live="polite">
         {answered && (
-          <Card className={`mt-5 border-2 p-4 ${isRight ? 'border-ok' : 'border-bad'}`}>
-            <p className={`font-display font-semibold ${isRight ? 'text-ok' : 'text-bad'}`}>
+          <Card className={`mt-6 animate-rise border-2 p-5 ${isRight ? 'border-ok' : 'border-bad'}`}>
+            <p className={`font-display text-lg font-semibold ${isRight ? 'text-ok' : 'text-bad'}`}>
               {isRight ? 'Верно!' : `Неверно. Правильный ответ — ${LETTERS[q.correct_index]}.`}
             </p>
             {q.explanation && (

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { hasSupabase } from '../lib/supabase'
-import { Brand, Button, Card, Field } from '../components/ui'
+import { Arcs, Brand, Button, Card, Field } from '../components/ui'
 
 export default function Auth() {
   const { signIn, signUp } = useAuth()
@@ -40,25 +40,31 @@ export default function Auth() {
   }
 
   return (
-    <div className="grid min-h-dvh place-items-center px-4 py-10">
-      <div className="w-full max-w-sm">
-        <div className="mb-6 text-center">
-          <Brand className="text-2xl" />
-          <p className="mt-2 text-sm text-ink-soft">
+    <div className="min-h-dvh pb-12">
+      {/* тёмный хиро */}
+      <div className="relative overflow-hidden rounded-b-[2.5rem] bg-plum-deep px-4 pb-24 pt-14 text-center text-white shadow-float">
+        <Arcs className="pointer-events-none absolute -right-14 -top-14 h-60 w-60 text-plum-glow" />
+        <Arcs className="pointer-events-none absolute -bottom-24 -left-20 h-56 w-56 rotate-180 text-plum-glow opacity-60" />
+        <div className="relative animate-rise">
+          <Brand tone="dark" className="text-2xl" />
+          <p className="mx-auto mt-3 max-w-60 text-sm leading-relaxed text-lavender">
             Подготовка к математической грамотности ЕНТ
           </p>
         </div>
+      </div>
 
-        <Card className="p-6">
-          <h1 className="mb-1 font-display text-xl font-semibold">
+      {/* парящая форма */}
+      <div className="px-4">
+        <Card className="mx-auto -mt-14 w-full max-w-sm animate-rise p-6 shadow-float" style={{ animationDelay: '90ms' }}>
+          <h1 className="font-display text-xl font-semibold">
             {isSignup ? 'Регистрация' : 'Вход'}
           </h1>
-          <p className="mb-5 text-sm text-ink-soft">
+          <p className="mb-5 mt-0.5 text-sm text-ink-soft">
             {isSignup ? 'Создайте аккаунт ученика' : 'Войдите в свой аккаунт'}
           </p>
 
           {!hasSupabase && (
-            <p className="mb-4 rounded-lg bg-plum-tint px-3 py-2 text-sm text-plum-dark">
+            <p className="mb-4 rounded-xl bg-plum-tint px-3 py-2 text-sm text-plum-dark">
               База ещё не подключена: заполните <code>.env.local</code> ключами Supabase.
             </p>
           )}
@@ -83,7 +89,7 @@ export default function Auth() {
               autoComplete={isSignup ? 'new-password' : 'current-password'}
             />
 
-            {error && <p className="text-sm text-plum-dark">{error}</p>}
+            {error && <p className="text-sm font-medium text-bad">{error}</p>}
             {notice && <p className="text-sm text-plum">{notice}</p>}
 
             <Button type="submit" disabled={busy} className="w-full">
@@ -96,7 +102,7 @@ export default function Auth() {
             <button
               type="button"
               onClick={() => { setMode(isSignup ? 'signin' : 'signup'); setError(''); setNotice('') }}
-              className="font-medium text-plum underline underline-offset-2"
+              className="font-semibold text-plum underline underline-offset-2"
             >
               {isSignup ? 'Войти' : 'Зарегистрироваться'}
             </button>
@@ -113,6 +119,6 @@ function translateError(msg = '') {
   if (m.includes('already registered')) return 'Эта почта уже зарегистрирована.'
   if (m.includes('password')) return 'Пароль слишком короткий (минимум 6 символов).'
   if (m.includes('failed to fetch') || m.includes('network'))
-    return 'Нет связи с базой. Проверьте подключение Supabase.'
+    return 'Нет связи с базой. Проверьте подключение к интернету.'
   return msg || 'Что-то пошло не так. Попробуйте ещё раз.'
 }
