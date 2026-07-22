@@ -4,6 +4,7 @@ import { RequireAuth, RequireTeacher } from './components/RequireAuth'
 import { Spinner } from './components/ui'
 import Landing from './pages/Landing'
 import Auth from './pages/Auth'
+import ResetPassword from './pages/ResetPassword'
 import Dashboard from './pages/Dashboard'
 import Practice from './pages/Practice'
 import Exam from './pages/Exam'
@@ -21,6 +22,9 @@ function Home() {
 }
 
 export default function App() {
+  const { recovery } = useAuth()
+  // Пришёл по ссылке «сброс пароля» — показываем экран нового пароля поверх всего
+  if (recovery) return <ResetPassword />
   return (
     <Routes>
       <Route path="/" element={<Home />} />

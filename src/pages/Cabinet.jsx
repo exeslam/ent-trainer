@@ -17,7 +17,7 @@ export default function Cabinet() {
     Promise.all([
       supabase
         .from('attempts')
-        .select('question_id, selected_index, is_correct, created_at, questions(body, options, correct_index, explanation)')
+        .select('question_id, selected_index, is_correct, correct_index, explanation, created_at, questions(body, options)')
         .eq('student_id', user.id)
         .order('created_at', { ascending: true }),
       supabase
@@ -153,7 +153,7 @@ export default function Cabinet() {
                       <div className="border-t-2 border-line px-4 pb-4 pt-3">
                         <div className="space-y-1.5">
                           {q.options.map((opt, i) => {
-                            const isCorrect = i === q.correct_index
+                            const isCorrect = i === a.correct_index
                             const isPicked = i === a.selected_index
                             return (
                               <div key={i} className={[
@@ -171,7 +171,7 @@ export default function Cabinet() {
                             )
                           })}
                         </div>
-                        {q.explanation && <p className="mt-3 text-sm font-semibold text-ink-soft">{q.explanation}</p>}
+                        {a.explanation && <p className="mt-3 text-sm font-semibold text-ink-soft">{a.explanation}</p>}
                       </div>
                     </details>
                   )

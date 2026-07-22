@@ -123,6 +123,98 @@ create policy "exams_manage_own"  on public.exams for all
 create policy "exams_read_all_te" on public.exams for select using (public.is_teacher());
 
 -- ============================================================
+--  СЕРВЕРНАЯ ПРОВЕРКА ОТВЕТОВ (правильный ответ не приходит ученику)
+-- ============================================================
+-- Правильные ответы живут отдельно и доступны ТОЛЬКО учителю/админу.
+create table if not exists public.answer_keys (
+  question_id   uuid primary key references public.questions(id) on delete cascade,
+  correct_index int not null,
+  explanation   text
+);
+alter table public.answer_keys enable row level security;
+drop policy if exists "answer_keys_admin_all" on public.answer_keys;
+create policy "answer_keys_admin_all" on public.answer_keys for all
+  using (public.is_teacher()) with check (public.is_teacher());
+
+-- Снимок правильного ответа на попытке — чтобы кабинет/разбор работали
+-- без доступа ученика к answer_keys.
+alter table public.attempts add column if not exists correct_index int;
+alter table public.attempts add column if not exists explanation  text;
+
+-- Тренировка: сервер проверяет ответ и записывает попытку.
+create or replace function public.answer_practice(p_question_id uuid, p_selected_index int)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare ci int; expl text; ok boolean;
+begin
+  if auth.uid() is null then raise exception 'auth required' using errcode='42501'; end if;
+  select correct_index, explanation into ci, expl from public.answer_keys where question_id = p_question_id;
+  if not found then raise exception 'question not found' using errcode='P0002'; end if;
+  ok := (p_selected_index = ci);
+  insert into public.attempts(student_id, question_id, selected_index, is_correct, mode, correct_index, explanation)
+    values (auth.uid(), p_question_id, p_selected_index, ok, 'practice', ci, expl);
+  return jsonb_build_object('is_correct', ok, 'correct_index', ci, 'explanation', expl);
+end; $$;
+revoke all on function public.answer_practice(uuid,int) from public, anon;
+grant execute on function public.answer_practice(uuid,int) to authenticated;
+
+-- Пробный ЕНТ: сервер оценивает целиком и возвращает разбор.
+create or replace function public.submit_exam(p_answers jsonb)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare v_exam uuid; v_total int; v_correct int := 0;
+  item jsonb; qid uuid; sel int; ci int; expl text; ok boolean; review jsonb := '[]'::jsonb;
+begin
+  if auth.uid() is null then raise exception 'auth required' using errcode='42501'; end if;
+  v_total := coalesce(jsonb_array_length(p_answers),0);
+  insert into public.exams(student_id, total, correct, started_at, finished_at)
+    values (auth.uid(), v_total, 0, now(), now()) returning id into v_exam;
+  for item in select * from jsonb_array_elements(p_answers) loop
+    qid := (item->>'question_id')::uuid;
+    sel := nullif(item->>'selected_index','')::int;
+    select correct_index, explanation into ci, expl from public.answer_keys where question_id = qid;
+    ok := (sel is not null and sel = ci);
+    if ok then v_correct := v_correct + 1; end if;
+    if sel is not null then
+      insert into public.attempts(student_id, question_id, selected_index, is_correct, mode, exam_id, correct_index, explanation)
+        values (auth.uid(), qid, sel, ok, 'exam', v_exam, ci, expl);
+    end if;
+    review := review || jsonb_build_object('question_id',qid,'selected_index',sel,'correct_index',ci,'is_correct',ok,'explanation',expl);
+  end loop;
+  update public.exams set correct = v_correct where id = v_exam;
+  return jsonb_build_object('exam_id',v_exam,'total',v_total,'correct',v_correct,'review',review);
+end; $$;
+revoke all on function public.submit_exam(jsonb) from public, anon;
+grant execute on function public.submit_exam(jsonb) to authenticated;
+
+-- Админ: создать/изменить вопрос вместе с ключом ответа (атомарно).
+create or replace function public.upsert_question(
+  p_id uuid, p_body text, p_options text[], p_correct_index int, p_explanation text, p_is_active boolean)
+returns uuid language plpgsql security definer set search_path = public as $$
+declare v_id uuid;
+begin
+  if not public.is_teacher() then raise exception 'admin only' using errcode='42501'; end if;
+  if p_id is null then
+    insert into public.questions(body, options, correct_index, explanation, is_active, created_by)
+      values (p_body, p_options, p_correct_index, p_explanation, coalesce(p_is_active,true), auth.uid())
+      returning id into v_id;
+  else
+    update public.questions set body=p_body, options=p_options,
+      correct_index=p_correct_index, explanation=p_explanation, is_active=coalesce(p_is_active,true)
+      where id=p_id;
+    v_id := p_id;
+  end if;
+  insert into public.answer_keys(question_id, correct_index, explanation)
+    values (v_id, p_correct_index, p_explanation)
+    on conflict (question_id) do update set correct_index=excluded.correct_index, explanation=excluded.explanation;
+  return v_id;
+end; $$;
+revoke all on function public.upsert_question(uuid,text,text[],int,text,boolean) from public, anon;
+grant execute on function public.upsert_question(uuid,text,text[],int,text,boolean) to authenticated;
+
+-- ЗАКРЫТЬ УТЕЧКУ: колонки правильного ответа в questions больше не читаемы клиентом.
+-- (questions.correct_index/explanation остаются как дубль для совместимости, но SELECT на них отозван.)
+revoke select (correct_index, explanation) on public.questions from anon, authenticated;
+
+-- ============================================================
 --  СДЕЛАТЬ УЧИТЕЛЯ (выполнить ПОСЛЕ регистрации Ларисы):
 --  update public.profiles set role = 'teacher'
 --  where id = (select id from auth.users where email = 'ПОЧТА_ЛАРИСЫ');

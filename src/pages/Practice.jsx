@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { useAuth } from '../context/AuthContext'
 import { Button, Card, CheckDraw, Confetti, CountUp, CrossDraw, Ring, Spinner } from '../components/ui'
 
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F']
@@ -36,21 +35,22 @@ function TopBar({ index, total }) {
 }
 
 export default function Practice() {
-  const { user } = useAuth()
   const [all, setAll] = useState(null)
   const [queue, setQueue] = useState([])
   const [idx, setIdx] = useState(0)
   const [picked, setPicked] = useState(null)
+  const [reveal, setReveal] = useState(null)   // {is_correct, correct_index, explanation} — от сервера
+  const [checking, setChecking] = useState(false)
   const [correctCount, setCorrectCount] = useState(0)
-  const [failedWrites, setFailedWrites] = useState(0)
   const [done, setDone] = useState(false)
   const [loadError, setLoadError] = useState(false)
 
   useEffect(() => {
     let active = true
+    // Правильный ответ НЕ приходит в браузер — только текст и варианты.
     supabase
       .from('questions')
-      .select('id, body, options, correct_index, explanation')
+      .select('id, body, options')
       .eq('is_active', true)
       .then(({ data, error }) => {
         if (!active) return
@@ -63,24 +63,28 @@ export default function Practice() {
 
   function restart() {
     setQueue(shuffle(all))
-    setIdx(0); setPicked(null); setCorrectCount(0); setFailedWrites(0); setDone(false)
+    setIdx(0); setPicked(null); setReveal(null); setCorrectCount(0); setDone(false)
   }
 
-  function pick(i) {
-    if (picked !== null) return
-    const q = queue[idx]
-    const isCorrect = i === q.correct_index
+  async function pick(i) {
+    if (picked !== null || checking) return
     setPicked(i)
-    if (isCorrect) setCorrectCount((c) => c + 1)
-    supabase.from('attempts').insert({
-      student_id: user.id, question_id: q.id, selected_index: i, is_correct: isCorrect, mode: 'practice',
-    }).then(({ error }) => { if (error) setFailedWrites((f) => f + 1) })
+    setChecking(true)
+    // Проверку делает сервер: клиент не знает правильный ответ заранее.
+    const { data, error } = await supabase.rpc('answer_practice', {
+      p_question_id: queue[idx].id, p_selected_index: i,
+    })
+    setChecking(false)
+    if (error || !data) { setPicked(null); return } // сеть моргнула — можно ответить снова
+    setReveal(data)
+    if (data.is_correct) setCorrectCount((c) => c + 1)
   }
 
   function next() {
     if (idx + 1 >= queue.length) { setDone(true); return }
     setIdx(idx + 1)
     setPicked(null)
+    setReveal(null)
   }
 
   if (all === null) {
@@ -130,11 +134,6 @@ export default function Practice() {
             <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-amber/15 px-3 py-1.5 font-display text-sm font-bold text-amber-dark">
               +{cc * 10} XP
             </div>
-            {failedWrites > 0 && (
-              <p className="mt-3 text-xs font-semibold text-ink-soft">
-                Часть ответов не сохранилась (сеть) — на результат не влияет.
-              </p>
-            )}
             <div className="mt-7 flex flex-col gap-3">
               <Button variant="success" onClick={restart}>Ещё раз</Button>
               <Link to="/" className="block"><Button variant="outline" className="w-full">На главную</Button></Link>
@@ -148,7 +147,7 @@ export default function Practice() {
   /* ---------- решение ---------- */
   const q = queue[idx]
   const answered = picked !== null
-  const isRight = answered && picked === q.correct_index
+  const isRight = reveal?.is_correct
 
   return (
     <div className="mx-auto min-h-dvh max-w-lg px-4 pb-28">
@@ -158,9 +157,10 @@ export default function Practice() {
 
       <div className="space-y-3" role="group" aria-label="Варианты ответа">
         {q.options.map((opt, i) => {
-          const isCorrectOpt = answered && i === q.correct_index
-          const isWrongPick = answered && picked === i && !isCorrectOpt
-          const dim = answered && !isCorrectOpt && !isWrongPick
+          const isCorrectOpt = reveal && i === reveal.correct_index
+          const isWrongPick = reveal && picked === i && i !== reveal.correct_index
+          const isPending = checking && picked === i           // ждём ответ сервера
+          const dim = reveal && !isCorrectOpt && !isWrongPick
           return (
             <button
               key={`${q.id}-${i}`} onClick={() => pick(i)} disabled={answered}
@@ -169,28 +169,31 @@ export default function Practice() {
                 'flex w-full animate-rise items-center gap-3.5 rounded-2xl border-2 bg-surface p-4 text-left transition disabled:pointer-events-none',
                 isCorrectOpt ? 'border-ok-bright bg-ok-tint' :
                 isWrongPick ? 'animate-shake border-bad bg-bad-tint' :
+                isPending ? 'border-plum bg-plum-tint' :
                 dim ? 'border-line opacity-40' : 'border-line hover:border-plum active:translate-y-0.5',
               ].join(' ')}
             >
               <span className={[
                 'grid h-11 w-11 flex-none place-items-center rounded-xl font-display text-base font-bold transition',
-                isCorrectOpt ? 'bg-ok-bright text-white' : isWrongPick ? 'bg-bad text-white' : 'bg-plum-tint text-plum',
+                isCorrectOpt ? 'bg-ok-bright text-white' : isWrongPick ? 'bg-bad text-white' :
+                isPending ? 'bg-plum text-white' : 'bg-plum-tint text-plum',
               ].join(' ')}>{LETTERS[i]}</span>
               <span className="min-w-0 flex-1 font-bold leading-snug">{opt}</span>
               {isCorrectOpt && <CheckDraw className="h-6 w-6 flex-none text-ok" />}
               {isWrongPick && <CrossDraw className="h-6 w-6 flex-none text-bad" />}
+              {isPending && <Spinner className="h-5 w-5 flex-none border-white/40 border-t-white" />}
             </button>
           )
         })}
       </div>
 
       <div aria-live="polite">
-        {answered && (
+        {reveal && (
           <div className={`mt-6 animate-rise rounded-3xl border-2 p-5 ${isRight ? 'border-ok-bright bg-ok-tint' : 'border-bad bg-bad-tint'}`}>
             <p className={`font-display text-lg font-bold ${isRight ? 'text-ok' : 'text-bad'}`}>
-              {isRight ? 'Верно! 🎯' : `Неверно. Правильный ответ — ${LETTERS[q.correct_index]}.`}
+              {isRight ? 'Верно! 🎯' : `Неверно. Правильный ответ — ${LETTERS[reveal.correct_index]}.`}
             </p>
-            {q.explanation && <p className="mt-1.5 text-sm font-semibold text-ink-soft">{q.explanation}</p>}
+            {reveal.explanation && <p className="mt-1.5 text-sm font-semibold text-ink-soft">{reveal.explanation}</p>}
             <Button variant={isRight ? 'success' : 'primary'} onClick={next} autoFocus className="mt-4 w-full">
               {idx + 1 >= queue.length ? 'Показать результат' : 'Далее'}
             </Button>

@@ -1,14 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
-import { useAuth } from '../../context/AuthContext'
 import { Button, Card, Spinner } from '../../components/ui'
 
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F']
-const EMPTY = { body: '', options: ['', '', '', ''], correctIndex: 0, explanation: '' }
+const EMPTY = { body: '', options: ['', '', '', ''], correctIndex: 0, explanation: '', isActive: true }
 
 export default function AdminQuestions() {
-  const { user } = useAuth()
   const [list, setList] = useState(null)
   const [view, setView] = useState('list')
   const [editingId, setEditingId] = useState(null)
@@ -19,17 +17,22 @@ export default function AdminQuestions() {
   const confirmTimer = useRef(null)
 
   async function refresh() {
+    // Правильный ответ живёт в answer_keys (ученикам недоступно, админу — да).
     const { data } = await supabase
       .from('questions')
-      .select('id, body, options, correct_index, explanation, is_active, created_at')
+      .select('id, body, options, is_active, created_at, answer_keys(correct_index, explanation)')
       .order('created_at', { ascending: false })
-    setList(data ?? [])
+    const rows = (data ?? []).map((q) => {
+      const ak = Array.isArray(q.answer_keys) ? q.answer_keys[0] : q.answer_keys
+      return { ...q, correct_index: ak?.correct_index ?? 0, explanation: ak?.explanation ?? null }
+    })
+    setList(rows)
   }
   useEffect(() => { refresh() }, [])
 
   function openNew() { setForm(EMPTY); setEditingId(null); setFormError(''); setView('form') }
   function openEdit(q) {
-    setForm({ body: q.body, options: [...q.options], correctIndex: q.correct_index, explanation: q.explanation ?? '' })
+    setForm({ body: q.body, options: [...q.options], correctIndex: q.correct_index, explanation: q.explanation ?? '', isActive: q.is_active })
     setEditingId(q.id); setFormError(''); setView('form')
   }
   function setOption(i, v) { setForm((f) => ({ ...f, options: f.options.map((o, j) => (j === i ? v : o)) })) }
@@ -54,11 +57,15 @@ export default function AdminQuestions() {
     if (!options[form.correctIndex]) return setFormError('Отметьте правильный вариант — нажмите на букву слева.')
 
     setSaving(true); setFormError('')
-    const payload = { body, options, correct_index: form.correctIndex, explanation: form.explanation.trim() || null }
-    const q = editingId
-      ? supabase.from('questions').update(payload).eq('id', editingId)
-      : supabase.from('questions').insert({ ...payload, created_by: user.id })
-    const { error } = await q
+    // Пишем и вопрос, и ключ ответа одним RPC (атомарно, ответ не утекает клиенту).
+    const { error } = await supabase.rpc('upsert_question', {
+      p_id: editingId,
+      p_body: body,
+      p_options: options,
+      p_correct_index: form.correctIndex,
+      p_explanation: form.explanation.trim() || null,
+      p_is_active: editingId ? form.isActive : true,
+    })
     setSaving(false)
     if (error) { setFormError('Не удалось сохранить. Проверьте интернет и попробуйте ещё раз.'); return }
     setView('list'); refresh()

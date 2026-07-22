@@ -10,6 +10,7 @@ export function AuthProvider({ children }) {
   const [session, setSession] = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [recovery, setRecovery] = useState(false) // пользователь пришёл по ссылке «сброс пароля»
 
   // Слушаем сессию
   useEffect(() => {
@@ -19,7 +20,8 @@ export function AuthProvider({ children }) {
       setSession(data.session)
       setLoading(false)
     })
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
+      if (event === 'PASSWORD_RECOVERY') setRecovery(true)
       setSession(s)
     })
     return () => { active = false; sub.subscription.unsubscribe() }
@@ -53,6 +55,13 @@ export function AuthProvider({ children }) {
     signIn: (email, password) =>
       supabase.auth.signInWithPassword({ email, password }),
     signOut: () => supabase.auth.signOut(),
+    resetPassword: (email) =>
+      supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + import.meta.env.BASE_URL,
+      }),
+    updatePassword: (password) => supabase.auth.updateUser({ password }),
+    recovery,
+    clearRecovery: () => setRecovery(false),
   }
 
   return <AuthCtx.Provider value={value}>{children}</AuthCtx.Provider>

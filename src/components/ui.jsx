@@ -87,9 +87,9 @@ export function Button({ variant = 'primary', className = '', style, ...props })
     'disabled:opacity-50 disabled:pointer-events-none select-none'
   const variants = {
     primary: 'bg-plum text-white',
-    success: 'bg-ok-bright text-white',
+    success: 'bg-ok-bright text-ink',   // тёмный текст: контраст на ярко-зелёном 6.1:1
     danger: 'bg-bad text-white',
-    amber: 'bg-amber text-white',
+    amber: 'bg-amber text-ink',         // тёмный текст: контраст на amber 6.6:1 (было 2.2 белым)
     light: 'bg-white text-plum border-2 border-line',
     outline: 'bg-white text-ink border-2 border-line',
     ghost: 'text-plum shadow-none active:translate-y-0',

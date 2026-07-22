@@ -137,12 +137,12 @@ export default function Dashboard() {
             {/* главный CTA — пробный ЕНТ */}
             <button onClick={() => navigate('/exam')}
               style={{ boxShadow: '0 5px 0 0 var(--color-amber-dark)' }}
-              className="group relative w-full overflow-hidden rounded-3xl bg-amber p-5 text-left text-white transition active:translate-y-0.5">
-              <MathShapes className="opacity-60" />
-              <p className="relative text-[11px] font-bold uppercase tracking-wide text-white/80">На время · как на экзамене</p>
+              className="group relative w-full overflow-hidden rounded-3xl bg-amber p-5 text-left text-ink transition active:translate-y-0.5">
+              <MathShapes className="opacity-35" />
+              <p className="relative text-[11px] font-bold uppercase tracking-wide text-ink/70">На время · как на экзамене</p>
               <p className="relative mt-1 font-display text-2xl font-bold">Пробный ЕНТ</p>
-              <p className="relative mt-0.5 text-sm font-semibold text-white/90">До 30 вопросов, результат и разбор в конце</p>
-              <span className="relative mt-4 inline-grid h-11 w-11 place-items-center rounded-2xl bg-white text-amber-dark transition group-hover:translate-x-1">
+              <p className="relative mt-0.5 text-sm font-semibold text-ink/80">До 30 вопросов, результат и разбор в конце</p>
+              <span className="relative mt-4 inline-grid h-11 w-11 place-items-center rounded-2xl bg-ink text-amber transition group-hover:translate-x-1">
                 <IconArrow className="h-5 w-5" />
               </span>
             </button>
