@@ -210,9 +210,11 @@ end; $$;
 revoke all on function public.upsert_question(uuid,text,text[],int,text,boolean) from public, anon;
 grant execute on function public.upsert_question(uuid,text,text[],int,text,boolean) to authenticated;
 
--- ЗАКРЫТЬ УТЕЧКУ: колонки правильного ответа в questions больше не читаемы клиентом.
--- (questions.correct_index/explanation остаются как дубль для совместимости, но SELECT на них отозван.)
-revoke select (correct_index, explanation) on public.questions from anon, authenticated;
+-- ЗАКРЫТЬ УТЕЧКУ: клиент не может читать правильный ответ из questions.
+-- ВАЖНО: табличный GRANT SELECT перекрывает колоночный REVOKE, поэтому отзываем
+-- select на всю таблицу и возвращаем ТОЛЬКО безопасные колонки (без correct_index/explanation).
+revoke select on public.questions from anon, authenticated;
+grant  select (id, body, options, is_active, topic, created_by, created_at) on public.questions to authenticated;
 
 -- ============================================================
 --  СДЕЛАТЬ УЧИТЕЛЯ (выполнить ПОСЛЕ регистрации Ларисы):
